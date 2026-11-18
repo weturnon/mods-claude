@@ -1,0 +1,12 @@
+{
+  "name": "mods-weturnon",
+  "owner": { "name": "weTURN.ON" },
+  "metadata": {
+    "description": "Mods do Claude Code da equipa weTURN.ON, fixados no commit revisto. Não seguem o GitHub dos autores: para atualizar, rever o código novo e copiar à mão."
+  },
+  "plugins": [
+    { "name": "savvy-progress", "source": "./savvy-progress", "description": "Barra de progresso e painel dos subagentes. johnnyvizz/claude-kit@c871c15 (MIT)." },
+    { "name": "skins", "source": "./skins", "description": "Temas, anéis do contexto e da semana e cartões no transcript. hellosverre/claude-skins@cf0d39f (MIT)." },
+    { "name": "custo-sessao", "source": "./custo-sessao", "description": "Anel com quanto a sessão já custou e a % da semana gasta. Feito pela weTURN.ON." }
+  ]
+}

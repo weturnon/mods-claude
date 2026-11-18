@@ -1,0 +1,21 @@
+{
+  "name": "custo-sessao",
+  "version": "0.3.0",
+  "description": "Anel ao lado do contexto com quanto a sessão já custou do plano: os tokens desta sessão convertidos em % da semana e em dinheiro, e o custo a preço de API, na mesma linha dos anéis da skins.",
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "precoMensal": {
+      "type": "number",
+      "title": "Preço mensal do plano",
+      "description": "Quanto custa a conta por mês (ex.: 25 para Team, 200 para Max 20x). A semana vale um quarto disto.",
+      "default": 25
+    },
+    "moeda": {
+      "type": "string",
+      "title": "Moeda",
+      "description": "Moeda em que o preço mensal está e em que o custo aparece.",
+      "default": "EUR",
+      "options": ["EUR", "USD"]
+    }
+  }
+}
