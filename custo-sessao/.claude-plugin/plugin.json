@@ -1,6 +1,6 @@
 {
   "name": "custo-sessao",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Anel ao lado do contexto com quanto a sessão já custou do plano: os tokens desta sessão convertidos em % da semana e em dinheiro, e o custo a preço de API, na mesma linha dos anéis da skins.",
   "types": "./types/index.d.ts",
   "userConfig": {

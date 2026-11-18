@@ -1,4 +1,4 @@
-import type { ElementTable, RenderSurface } from 'claude-code'
+import type { ElementTable, RenderChildren, RenderSurface } from 'claude-code'
 
 import type { Prefs, Touch, TurnStats } from '../types'
 import { formatDuration, formatMs } from './format'
@@ -26,7 +26,7 @@ import { cardWidth, settled } from './svg-kit'
 import { tableSvg } from './svg-table'
 import { terminalSvg } from './svg-terminal'
 import type { ShellOutput } from './svg-terminal'
-import { metersKey, usageLine, usageSvg } from './svg-usage'
+import { meterWords, metersKey, ringSvg, usageLine } from './svg-usage'
 import { codeRows } from './code-rows'
 import { languageOf } from './highlight'
 import type { Meter } from './svg-usage'
@@ -903,18 +903,30 @@ export const COMPACT_HOTKEY = '0'
 // the rings fill in is still decided once for the whole band, keyed on every meter, so they
 // fill together when any number changes and hold still together otherwise.
 function meterView(look: Look, meters: readonly Meter[]) {
-  const { Text } = look.ui
+  const { Box, Text } = look.ui
   const { palette } = look.skin
 
   if (look.svg !== undefined) {
     const Svg = look.svg
-    const builds = meters.map(meter => ({ meter, built: usageSvg([meter], palette, true) }))
+    // weTURN.ON: the ring is SVG, the words beside it Text, so they follow the app's light or
+    // dark theme (a dark skin's near-white fg could not be read on the light app).
+    const builds = meters.map(meter => ({ meter, built: ringSvg(meter, palette) }))
     const entranceMs = Math.max(0, ...builds.map(({ built }) => built.entranceMs))
     const isFirst = look.isFirstDraw === undefined || look.isFirstDraw(`usage:${metersKey(meters)}`, entranceMs)
 
-    return builds.map(({ meter, built }) => (
-      <Svg key={`usage-${meter.label}`} source={isFirst ? built.source : settled(built.source)} alt={built.alt} width={built.width} height={built.height} />
-    ))
+    return builds.map(({ meter, built }) => {
+      const words = meterWords(meter)
+
+      return (
+        <Box flexDirection="row" alignItems="center" columnGap={1}>
+          <Svg source={isFirst ? built.source : settled(built.source)} alt={built.alt} width={built.width} height={built.height} />
+          <Text>
+            <Text weight="semibold">{words.figure}</Text>
+            <Text dimColor>{words.rest}</Text>
+          </Text>
+        </Box>
+      )
+    })
   }
 
   return usageLine(meters).map(meter => (
@@ -928,7 +940,9 @@ function meterView(look: Look, meters: readonly Meter[]) {
 // The band above the prompt: the meters, spread evenly, and a Compact button that becomes
 // the main action, with a word on why, once the context is full enough to be worth it.
 // `/skin compact off` drops the button and the word, and the meters take the whole width.
-export function usageBand(look: Look, meters: readonly Meter[], canCompact: boolean, compact: () => void) {
+// weTURN.ON: `extras` are other mods' meters (a Box keyed `skins-band:...`, see liftBandExtras),
+// drawn in the same row after the band's own.
+export function usageBand(look: Look, meters: readonly Meter[], canCompact: boolean, compact: () => void, extras: readonly RenderChildren[] = []) {
   const { Box, Text, Button } = look.ui
   const { palette } = look.skin
   const context = meters.find(meter => meter.label === 'context')?.percent ?? 0
@@ -939,6 +953,7 @@ export function usageBand(look: Look, meters: readonly Meter[], canCompact: bool
     <Box flexDirection="row" alignItems="center" columnGap={2} paddingRight={5}>
       <Box flexDirection="row" alignItems="center" columnGap={3} justifyContent="space-evenly" flexGrow={1}>
         {meterView(look, meters)}
+        {extras}
       </Box>
       {canCompact && isNudge ? <Text color={palette.warn}>{`Context is ${context}% full`}</Text> : ''}
       {canCompact ? (
@@ -957,4 +972,29 @@ export function usageBand(look: Look, meters: readonly Meter[], canCompact: bool
       )}
     </Box>
   )
+}
+
+// weTURN.ON: another mod hooked inside skins (its plugin enabled after skins) cannot reach the
+// band, which skins draws around it. It hands its meter down instead, as a Box keyed
+// `skins-band:<mod>`; skins takes each one out of the tree beneath and into its row of meters.
+type Node = { type?: unknown; props?: Record<string, unknown>; children?: unknown[] }
+
+const isBandExtra = (node: unknown): boolean =>
+  typeof node === 'object' && node !== null && (node as Node).type === 'Box' && String((node as Node).props?.key ?? '').startsWith('skins-band:')
+
+export function liftBandExtras<T>(tree: T): { tree: T; extras: RenderChildren[] } {
+  const extras: RenderChildren[] = []
+  const strip = (node: unknown): unknown => {
+    if (typeof node !== 'object' || node === null || !Array.isArray((node as Node).children)) {
+      return node
+    }
+
+    const kids = (node as Node).children as unknown[]
+    const kept = kids.filter(kid => (isBandExtra(kid) ? (extras.push(kid as RenderChildren), false) : true)).map(strip)
+
+    return kept.length === kids.length && kept.every((kid, i) => kid === kids[i]) ? node : { ...(node as Node), children: kept }
+  }
+  const stripped = isBandExtra(tree) ? (extras.push(tree as RenderChildren), '') : strip(tree)
+
+  return { tree: stripped as T, extras }
 }

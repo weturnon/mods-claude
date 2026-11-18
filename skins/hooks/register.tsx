@@ -14,7 +14,7 @@ import { disclosedRow, openedRows } from './detail-rows'
 import { copyOf } from './markdown'
 import { CHART_HINT } from './mermaid'
 import { commandSegments } from './command-output'
-import { askBand, desktopSpinnerRow, diffCard, footerRow, terminalCard, usageBand, groupRow, promptRow, quietResult, replyRows, spinnerRow, toolRow } from './rows'
+import { askBand, desktopSpinnerRow, diffCard, footerRow, terminalCard, usageBand, liftBandExtras, groupRow, promptRow, quietResult, replyRows, spinnerRow, toolRow } from './rows'
 import type { Look, SvgElement, Ui } from './rows'
 import { galleryPane } from './gallery'
 import { keepsOwnRow, SHELLS, shellResultOf } from './shell'
@@ -1278,7 +1278,9 @@ export const register: Register = on => {
 
     const plain = lookOf($.ui.resolve(e), active, e.surface)
     const { Box } = plain.ui
-    const theirs = await next(e)
+    // weTURN.ON: meters other mods hand down (custo-sessao) join the row of rings.
+    const lifted = e.surface === 'terminal' ? { tree: await next(e), extras: [] } : liftBandExtras(await next(e))
+    const theirs = lifted.tree
     // Compacting mid-turn would cut the turn's own context out from under it.
     // Runs Claude Code's own /compact, so the person sees its usual progress and result.
     // Work a press starts is abandoned when the press ends, which cancels a compaction
@@ -1301,7 +1303,7 @@ export const register: Register = on => {
       $,
       e,
       <Box flexDirection="column">
-        {usageBand(look, meters, active.prefs.compact && !e.props.isWorking && !isCompacting, compact)}
+        {usageBand(look, meters, active.prefs.compact && !e.props.isWorking && !isCompacting, compact, lifted.extras)}
         {theirs}
       </Box>,
     )

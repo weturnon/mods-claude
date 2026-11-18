@@ -23,4 +23,22 @@ O custo-sessao assume o plano Team (25 por mês). Quem tiver outro plano muda o 
 
 ## Atualizar
 
+Quando sai uma versão nova (por exemplo, custo-sessao 0.4.0 e skins 0.5.16-wto.2, que corrigem a barra nas contas com limite de 5h e o tema claro):
+
+```bash
+claude plugin marketplace update mods-weturnon
+```
+
+```bash
+claude plugin update skins@mods-weturnon
+```
+
+```bash
+claude plugin update custo-sessao@mods-weturnon
+```
+
+Depois, reiniciar o Claude Code (ou a app). Se o `update` disser que já está na última versão, desinstalar e voltar a instalar o mod.
+
+O custo-sessao e o skins têm de ser atualizados juntos: o anel do custo entra na linha dos anéis do skins seja qual for a ordem em que foram instalados, mas só com as duas versões novas.
+
 Os mods de terceiros estão fixados no commit revisto. Não se puxam versões novas dos autores sem ler o código.

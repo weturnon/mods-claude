@@ -114,6 +114,40 @@ export function usageSvg(meters: readonly Meter[], palette: Palette, tight = fal
   }
 }
 
+// weTURN.ON: only the ring of one meter, for the band on the desktop and the web. The figure
+// and the label beside it are drawn as Text, in the app's theme colours: an SVG cannot tell
+// whether the app is light or dark, and a fixed fg read as white on white in light mode.
+export function ringSvg(meter: Meter, palette: Palette): { source: string; width: number; height: number; alt: string; entranceMs: number } {
+  const width = RING_R * 2 + 8
+  const height = 30
+  const x = RING_R + 4
+  const circumference = 2 * Math.PI * RING_R
+  const filled = (circumference * meter.percent) / 100
+  const style = [
+    `.fill{animation:fill ${FILL_MS}ms cubic-bezier(.2,.8,.2,1)}`,
+    '@keyframes fill{from{stroke-dasharray:0 100}}',
+    '@media (prefers-reduced-motion:reduce){.fill{animation:none}}',
+  ].join('')
+  const items = [
+    `<circle cx="${x}" cy="15" r="${RING_R}" fill="none" stroke="${palette.muted}" stroke-opacity=".3" stroke-width="3"/>`,
+    `<circle class="fill" cx="${x}" cy="15" r="${RING_R}" fill="none" stroke="${meterColor(meter.percent, palette)}" stroke-width="3" stroke-linecap="round" stroke-dasharray="${filled} ${circumference}" transform="rotate(-90 ${x} 15)" style="--len:${filled}"/>`,
+  ].join('')
+
+  return {
+    source: `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><style>${style}</style>${items}</svg>`,
+    width,
+    height,
+    alt: `${meter.label} ${meter.percent}%${meter.resets === undefined ? '' : `, resets in ${meter.resets}`}`,
+    entranceMs: FILL_MS,
+  }
+}
+
+// The words beside a ring: the figure, then the label and any countdown.
+export const meterWords = (meter: Meter): { figure: string; rest: string } => ({
+  figure: `${meter.percent}%`,
+  rest: ` ${meter.label}${meter.resets === undefined ? '' : ` · ${meter.resets}`}`,
+})
+
 // The terminal's version: one line of block meters, `text` what follows each bar.
 export function usageLine(meters: readonly Meter[]): { label: string; bar: string; percent: number; text: string }[] {
   return meters.map(meter => {
