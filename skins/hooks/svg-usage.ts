@@ -33,6 +33,35 @@ export function countdownOf(ms: number): string {
   return hours > 0 ? `${hours}h${String(rest).padStart(2, '0')}` : `${rest}m`
 }
 
+// weTURN.ON: the weekly meter reads as the time left until it renews, in place of `7d`:
+// whole days, then hours under a day, then minutes under an hour.
+export function weekLeftOf(ms: number): string {
+  const minutes = Math.ceil(ms / MINUTE_MS)
+
+  if (minutes <= 0) {
+    return 'a renovar'
+  }
+
+  if (minutes < 60) {
+    return `faltam ${minutes} min`
+  }
+
+  if (minutes < 1440) {
+    return `faltam ${Math.floor(minutes / 60)} h`
+  }
+
+  const days = Math.floor(minutes / 1440)
+
+  return days === 1 ? 'falta 1 dia' : `faltam ${days} dias`
+}
+
+// The weekly meter's label as it reads at `now`, or undefined where the week says no reset.
+export const weekLabelOf = (usage: UsageSnap, now: number): string | undefined => {
+  const week = usage.limits.find(limit => limit.label === '7d')
+
+  return week?.resetsAt === undefined ? undefined : weekLeftOf(week.resetsAt - now)
+}
+
 // Each limit's countdown by its label, for the limits that say when they reset.
 export const countdownsOf = (usage: UsageSnap, now: number): Record<string, string> =>
   Object.fromEntries(usage.limits.flatMap(limit => (limit.resetsAt === undefined ? [] : [[limit.label, countdownOf(limit.resetsAt - now)]])))
@@ -59,13 +88,16 @@ export function limitLabel(kind: string): string {
 }
 
 // `countdowns`, by limit label, puts each limit's time to reset beside its meter.
-export function metersOf(usage: UsageSnap, countdowns: Record<string, string> = {}): Meter[] {
+// weTURN.ON: with `now`, the weekly meter's label is the time left until it renews.
+export function metersOf(usage: UsageSnap, countdowns: Record<string, string> = {}, now?: number): Meter[] {
   return [
     ...(usage.context === null ? [] : [{ label: 'context', percent: usage.context }]),
     ...usage.limits.map(limit => {
-      const resets = countdowns[limit.label]
+      const isWeek = now !== undefined && limit.label === '7d' && limit.resetsAt !== undefined
+      const resets = isWeek ? undefined : countdowns[limit.label]
+      const label = isWeek ? weekLeftOf(limit.resetsAt! - now) : limit.label
 
-      return { label: limit.label, percent: limit.percent, ...(resets === undefined ? {} : { resets }) }
+      return { label, percent: limit.percent, ...(resets === undefined ? {} : { resets }) }
     }),
   ].map(meter => ({ ...meter, percent: Math.max(0, Math.min(100, Math.round(meter.percent))) }))
 }

@@ -25,7 +25,7 @@ import { ICONS } from './skin'
 import type { Skin } from './skin'
 import { hunksOf } from './svg-diff'
 import { shellOutputOf } from './svg-terminal'
-import { countdownsOf, limitLabel, metersOf } from './svg-usage'
+import { countdownsOf, limitLabel, metersOf, weekLabelOf } from './svg-usage'
 import { shortenPath } from './format'
 import { kindOf, summarize, toolLabel } from './tools'
 import { commandOf, errorLine, isQuiet, quietLabel } from './quiet'
@@ -539,11 +539,15 @@ async function refreshUsage($: EngineInterface): Promise<void> {
 async function tickCountdowns($: EngineInterface): Promise<void> {
   const prefs = await read($, prefsAtom)
 
-  if (!prefs.countdown || !prefs.band) {
+  if (!prefs.band) {
     return
   }
 
-  const next = countdownsOf(await read($, usageAtom), await $.clock.now())
+  // weTURN.ON: the weekly label (time left until it renews) ticks even with countdowns off.
+  const usage = await read($, usageAtom)
+  const now = await $.clock.now()
+  const week = weekLabelOf(usage, now)
+  const next = { ...(prefs.countdown ? countdownsOf(usage, now) : {}), ...(week === undefined ? {} : { 'semana:': week }) }
 
   if (JSON.stringify(next) === JSON.stringify(await read($, countdownsAtom))) {
     return
@@ -1269,8 +1273,11 @@ export const register: Register = on => {
     const usage = await read($, usageAtom)
     // Drawn from the clock so a countdown switched on shows at once; reading the atom
     // redraws the band when the minute tick changes one.
-    const countdowns = active?.prefs.countdown === true ? (await read($, countdownsAtom), countdownsOf(usage, await $.clock.now())) : {}
-    const meters = metersOf(usage, countdowns)
+    // weTURN.ON: the atom is read always, as the weekly label ticks with it.
+    await read($, countdownsAtom)
+    const now = await $.clock.now()
+    const countdowns = active?.prefs.countdown === true ? countdownsOf(usage, now) : {}
+    const meters = metersOf(usage, countdowns, now)
 
     if (active === null || !active.prefs.band || e.props.hasSurvey || meters.length === 0) {
       return next(e)
