@@ -204,6 +204,7 @@ const dinheiro = (v: number, moeda: 'EUR' | 'USD') =>
 
 // O anel e as frases que valem para as duas linhas: a desta mod e a dos anéis da skins.
 // `curto` é o rótulo na linha da skins, que já leva três ou quatro anéis e o botão Compact.
+// Leva o preço de API: é a comparação com o plano que dá noção do valor da conta.
 async function desenho($: EngineInterface, plano: Plano) {
   const atual = await read($, custo)
   if (!atual.isMeasured) return null
@@ -211,7 +212,7 @@ async function desenho($: EngineInterface, plano: Plano) {
   const api = dinheiro(atual.usd, 'USD')
   const valor = pct === null ? api : dinheiro(pct * plano.porPonto, plano.moeda)
   const rotulo = pct === null ? 'API · a calibrar' : `${api} API · ${pontos(pct)}% semana`
-  const curto = pct === null ? 'API' : `${pontos(pct)}% semana`
+  const curto = pct === null ? 'API · a calibrar' : `${api} API · ${pontos(pct)}% semana`
   const frase =
     pct === null
       ? `Esta sessão: ${api} a preço de API. Ainda a aprender quanto vale a tua semana em tokens.`
